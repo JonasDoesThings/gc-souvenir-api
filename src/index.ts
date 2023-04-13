@@ -10,13 +10,13 @@ type Souvenir = {
   description?: string;
   startTimestamp: number;
   startDateStr: string;
-  endTimestamp?: number;
-  endDateStr?: string;
+  endTimestamp: number|null;
+  endDateStr: string|null;
 }
 
 const FILTERS: {[key: string]: (souvenir: Souvenir, date: Date) => boolean} = {
   'onlyStartingOnDate': (souvenir, date) => (date.setUTCHours(0, 0, 0, 0) === new Date(souvenir.startTimestamp).setUTCHours(0, 0, 0, 0)),
-  'onlyEndingOnDate': (souvenir, date) => (souvenir.endTimestamp ? (date.setUTCHours(0, 0, 0, 0) === new Date(souvenir.endTimestamp).setUTCHours(0, 0, 0, 0)) : false),
+  'onlyEndingOnDate': (souvenir, date) => (souvenir.endTimestamp ? (date.setUTCHours(0, 0, 0, 0) === new Date(souvenir.endTimestamp).setUTCHours(0, 0, 0, 0)) : true),
 };
 
 export default {
@@ -44,7 +44,7 @@ export default {
         description: souvenirDescription,
         startDateStr: souvenirStartDate,
         startTimestamp: Date.parse(souvenirStartDate + ' GMT'),
-        endDateStr: souvenirEndDate,
+        endDateStr: (!souvenirEndDate || souvenirEndDate.trim().length < 1) ? null : souvenirEndDate,
         endTimestamp: Date.parse(souvenirEndDate + ' GMT'),
       };
 
@@ -63,10 +63,14 @@ export default {
 
   async findTimeBasedSouvenirsForDay(allSouvenirs: Souvenir[], date: Date, filter?: (souvenir: Souvenir, date: Date) => boolean): Promise<Souvenir[]> {
     const filteredSouvenirs: Souvenir[] = [];
-    const dateStartTimestamp = Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), 0, 0, 0, 0);
+    const queryDateStartTimestamp = Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), 0, 0, 0, 0);
 
     allSouvenirs.forEach(souvenir => {
-      if (dateStartTimestamp >= souvenir.startTimestamp && (!souvenir.endTimestamp || dateStartTimestamp <= souvenir.endTimestamp)) {
+      if (
+        (!souvenir.endTimestamp && queryDateStartTimestamp === souvenir.startTimestamp)
+        || (souvenir.endTimestamp && (queryDateStartTimestamp >= souvenir.startTimestamp && queryDateStartTimestamp <= souvenir.endTimestamp))
+      ) {
+
         if(!!filter && !filter(souvenir, date)) {
           return;
         }
