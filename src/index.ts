@@ -1,7 +1,9 @@
 import * as htmlparser2 from 'htmlparser2';
 import * as domutils from 'domutils';
 
-export interface Env { }
+export interface Env {
+  SOUVENIR_DATA: KVNamespace;
+}
 
 type Souvenir = {
   name: string;
@@ -18,10 +20,19 @@ const FILTERS: {[key: string]: (souvenir: Souvenir, date: Date) => boolean} = {
 };
 
 export default {
-  async findTimeBasedSouvenirsForDay(date: Date, filter?: (souvenir: Souvenir, date: Date) => boolean): Promise<Souvenir[]> {
-    const souvenirs: Souvenir[] = [];
-    const dateStartTimestamp = Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), 0, 0, 0, 0);
+  async fetchAllSouvenirs(cacheBinding: KVNamespace): Promise<Souvenir[]> {
+    const allSouvenirs: Souvenir[] = [];
 
+    const {
+      value: cachedSouvenirs,
+      metadata,
+    } = await cacheBinding.getWithMetadata<Souvenir[]>('allSouvenirs', {type: 'json'});
+
+    if(cachedSouvenirs && (Date.now() - (metadata as {timestamp: number}).timestamp < (1000*60*60))) {
+      return cachedSouvenirs;
+    }
+
+    console.debug('no cached and up-to-date data, re-fetching...');
     const dom = htmlparser2.parseDocument(await (await fetch('https://thea-team.net/souvenirs/date-based')).text());
     const table = domutils.getElementsByTagName('table', dom)[0];
     domutils.getElementsByTagName('tr', table).forEach(tableRow => {
@@ -37,16 +48,34 @@ export default {
         endTimestamp: Date.parse(souvenirEndDate + ' GMT'),
       };
 
-      if (dateStartTimestamp >= souvenir.startTimestamp && dateStartTimestamp <= souvenir.endTimestamp) {
+      allSouvenirs.push(souvenir);
+    });
+
+    await cacheBinding.put('allSouvenirs', JSON.stringify(allSouvenirs), {
+      expirationTtl: 60*60,
+      metadata: {
+        timestamp: Date.now(),
+      },
+    });
+
+    return allSouvenirs;
+  },
+
+  async findTimeBasedSouvenirsForDay(allSouvenirs: Souvenir[], date: Date, filter?: (souvenir: Souvenir, date: Date) => boolean): Promise<Souvenir[]> {
+    const filteredSouvenirs: Souvenir[] = [];
+    const dateStartTimestamp = Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), 0, 0, 0, 0);
+
+    allSouvenirs.forEach(souvenir => {
+      if (dateStartTimestamp >= souvenir.startTimestamp && (!souvenir.endTimestamp || dateStartTimestamp <= souvenir.endTimestamp)) {
         if(!!filter && !filter(souvenir, date)) {
           return;
         }
 
-        souvenirs.push(souvenir);
+        filteredSouvenirs.push(souvenir);
       }
     });
 
-    return souvenirs;
+    return filteredSouvenirs;
   },
 
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
@@ -78,7 +107,7 @@ export default {
       return new Response(JSON.stringify({error: 'failed parsing provided date or timestamp'}), {status: 500});
     }
 
-    const souvenirs = await this.findTimeBasedSouvenirsForDay(dateToShowSouvenirsFor, filter ? FILTERS[filter] : undefined);
-    return new Response(JSON.stringify({souvenirs: souvenirs}), {status: 200});
+    const filteredSouvenirs = await this.findTimeBasedSouvenirsForDay(await this.fetchAllSouvenirs(env.SOUVENIR_DATA), dateToShowSouvenirsFor, filter ? FILTERS[filter] : undefined);
+    return new Response(JSON.stringify({souvenirs: filteredSouvenirs}), {status: 200});
   },
 };

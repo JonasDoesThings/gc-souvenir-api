@@ -1,0 +1,8 @@
+name = "gc-souvenir-api"
+main = "src/index.ts"
+compatibility_date = "2023-04-11"
+
+kv_namespaces = [
+    # YOUR BINDING HERE
+    # e.g. { binding = "SOUVENIR_DATA", id = "your_id", preview_id = "your_preview_id" }
+]

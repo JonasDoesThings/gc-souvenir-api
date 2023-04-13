@@ -3,8 +3,17 @@ A serverless API running on cloudflare workers platform for getting information 
   
 Data is scraped from https://thea-team.net/souvenirs/date-based.  
 
-### Dev
-Run the project locally using `yarn dev --local`  
+## Setup
+1. Copy the `wrangler.toml.example` to `wrangler.toml`
+2. Run `wrangler kv:namespace create SOUVENIR_DATA`
+3. Insert the outputted binding into your `wrongler.toml` `kv_namespaces` section.
+
+## Dev
+1. Run the steps described in #Setup
+2. Create a development KV binding using `wrangler kv:namespace create SOUVENIR_DATA --preview`
+3. Insert the outputted binding's preview_id into your existing `wrongler.toml` `kv_namespaces` binding created before.
+4. Run the project locally using `yarn dev --local`  
+
 Now you can manually trigger the worker by sending a HTTP GET Request to `http://localhost:8787/`
 
 ## License
