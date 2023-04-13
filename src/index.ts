@@ -96,15 +96,12 @@ export default {
       return new Response(JSON.stringify({error: 'unknown filter'}), {status: 400});
     }
 
-    let dateToShowSouvenirsFor;
-    if(isoDate === null && timestamp === null) {
-      dateToShowSouvenirsFor = new Date();
-    }
+    let dateToShowSouvenirsFor = new Date();
 
     if(isoDate !== null) {
       dateToShowSouvenirsFor = new Date(Date.parse(isoDate));
     } else if(timestamp !== null) {
-      dateToShowSouvenirsFor = new Date(timestamp);
+      dateToShowSouvenirsFor = new Date(parseInt(timestamp));
     }
 
     if(!dateToShowSouvenirsFor) {
