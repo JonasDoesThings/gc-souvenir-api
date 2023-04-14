@@ -13,7 +13,8 @@
   "private": true,
   "scripts": {
     "dev": "wrangler dev",
-    "deploy": "wrangler publish"
+    "deploy": "wrangler publish",
+    "clear:cache": "wrangler kv:key delete allSouvenirs --preview --binding SOUVENIR_DATA"
   },
   "dependencies": {
     "domutils": "^3.0.1",
