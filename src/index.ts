@@ -19,6 +19,8 @@ const FILTERS: {[key: string]: (souvenir: Souvenir, date: Date) => boolean} = {
   'onlyEndingOnDate': (souvenir, date) => (souvenir.endTimestamp ? (date.setUTCHours(0, 0, 0, 0) === new Date(souvenir.endTimestamp).setUTCHours(0, 0, 0, 0)) : true),
 };
 
+const DEFAULT_RESP_INIT = {headers: {'content-type': 'application/json;charset=UTF-8'}};
+
 export default {
   async fetchAllSouvenirs(cacheBinding: KVNamespace): Promise<Souvenir[]> {
     const allSouvenirs: Souvenir[] = [];
@@ -89,11 +91,11 @@ export default {
     const filter = requestUrl.searchParams.get('filter');
 
     if(isoDate !== null && timestamp !== null) {
-      return new Response(JSON.stringify({error: 'please only provide isoDate OR timestamp'}), {status: 400});
+      return new Response(JSON.stringify({error: 'please only provide isoDate OR timestamp'}), {...DEFAULT_RESP_INIT, status: 400});
     }
 
     if(filter !== null && !FILTERS[filter]) {
-      return new Response(JSON.stringify({error: 'unknown filter'}), {status: 400});
+      return new Response(JSON.stringify({error: 'unknown filter'}), {...DEFAULT_RESP_INIT, status: 400});
     }
 
     let dateToShowSouvenirsFor = new Date();
@@ -105,10 +107,10 @@ export default {
     }
 
     if(!dateToShowSouvenirsFor) {
-      return new Response(JSON.stringify({error: 'failed parsing provided date or timestamp'}), {status: 500});
+      return new Response(JSON.stringify({error: 'failed parsing provided date or timestamp'}), {...DEFAULT_RESP_INIT, status: 500});
     }
 
     const filteredSouvenirs = await this.findTimeBasedSouvenirsForDay(await this.fetchAllSouvenirs(env.SOUVENIR_DATA), dateToShowSouvenirsFor, filter ? FILTERS[filter] : undefined);
-    return new Response(JSON.stringify({souvenirs: filteredSouvenirs}), {status: 200});
+    return new Response(JSON.stringify({souvenirs: filteredSouvenirs}), {...DEFAULT_RESP_INIT, status: 200});
   },
 };
