@@ -9,7 +9,7 @@ Data is scraped from https://thea-team.net/souvenirs/date-based.
 3. Insert the outputted binding into your `wrongler.toml` `kv_namespaces` section.
 
 ## Dev
-1. Run the steps described in #Setup
+1. Run the steps described in [#setup](#setup)
 2. Create a development KV binding using `wrangler kv:namespace create SOUVENIR_DATA --preview`
 3. Insert the outputted binding's preview_id into your existing `wrongler.toml` `kv_namespaces` binding created before.
 4. Run the project locally using `yarn dev --local`  
